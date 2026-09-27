@@ -3,7 +3,7 @@ Smart Spam Classification System
 Flask backend application integrating the ML prediction service.
 """
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, render_template, request
 from services.predictor import predict_message
 
 app = Flask(__name__)
@@ -11,7 +11,14 @@ app = Flask(__name__)
 
 @app.route("/", methods=["GET"])
 def home():
-    """Health check / root endpoint."""
+    """
+    Renders the frontend HTML page when requested by a browser (Accept: text/html),
+    or returns health check JSON for API clients and automated tests.
+    """
+    accept = request.headers.get("Accept", "")
+    if "text/html" in accept:
+        return render_template("index.html")
+
     return jsonify({
         "status": "healthy",
         "service": "Smart Spam Classification System",
@@ -46,7 +53,9 @@ def predict():
             "message": result["message"],
             "prediction": result["prediction"],
             "spam_probability": result["spam_probability"],
-            "confidence": result["confidence"]
+            "confidence": result["confidence"],
+            "risk_signals": result.get("risk_signals", []),
+            "reason": result.get("reason", ""),
         }), 200
     except Exception as e:
         return jsonify({

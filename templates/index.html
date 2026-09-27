@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Spam Classifier | AI-Powered Message Detection</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="page-wrapper">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-badge">
+        <span class="badge-dot"></span>
+        <span>Machine Learning • Logistic Regression &amp; TF-IDF</span>
+      </div>
+      <h1 class="app-title">Smart Spam Classifier</h1>
+      <p class="app-tagline">
+        Detect and classify spam messages in real-time using natural language processing and machine learning.
+      </p>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-card">
+      <!-- Input Section -->
+      <section class="input-section">
+        <div class="section-label-row">
+          <label for="messageInput" class="section-label">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            Message Content
+          </label>
+          <span class="char-count" id="charCount">0 characters</span>
+        </div>
+
+        <div class="textarea-wrapper">
+          <textarea
+            id="messageInput"
+            rows="5"
+            placeholder="Type or paste a message here to check (e.g. promotional SMS, prize alerts, personal messages)..."
+            aria-label="Message to analyze"
+          ></textarea>
+        </div>
+
+        <!-- Quick Sample Chips -->
+        <div class="sample-chips">
+          <span class="chips-label">Try an example:</span>
+          <button type="button" class="chip-btn" data-sample="Congratulations! You have won a free prize. Click now to claim.">
+            🏆 Prize Claim (Spam)
+          </button>
+          <button type="button" class="chip-btn" data-sample="URGENT! Your bank account has been flagged. Verify now at http://secure-update.com">
+            ⚠️ Phishing (Spam)
+          </button>
+          <button type="button" class="chip-btn" data-sample="Hey, are we still meeting for lunch today at 1pm? Let me know!">
+            ☕ Lunch Meeting (Ham)
+          </button>
+          <button type="button" class="chip-btn" data-sample="The assignment submission deadline has been extended to Friday.">
+            📚 Class Notice (Ham)
+          </button>
+        </div>
+
+        <!-- Error Banner -->
+        <div id="errorBanner" class="error-banner hidden" role="alert">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span id="errorMessage">Please enter a message to analyze.</span>
+        </div>
+
+        <!-- Actions -->
+        <div class="action-row">
+          <button id="analyzeBtn" class="btn btn-primary" type="button">
+            <span class="btn-spinner hidden" id="btnSpinner"></span>
+            <span class="btn-icon" id="btnIcon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </span>
+            <span id="btnText">Analyze Message</span>
+          </button>
+          <button id="clearBtn" class="btn btn-secondary" type="button">
+            Clear
+          </button>
+        </div>
+      </section>
+
+      <!-- Loading State Overlay -->
+      <section id="loadingState" class="loading-state hidden">
+        <div class="pulse-loader"></div>
+        <p class="loading-text">Analyzing text patterns &amp; computing TF-IDF features...</p>
+      </section>
+
+      <!-- Result Section -->
+      <section id="resultSection" class="result-section hidden" aria-live="polite">
+        <div class="result-divider"></div>
+
+        <div class="result-header">
+          <h2 class="result-title">Classification Result</h2>
+          <span class="result-badge" id="resultBadge">HAM</span>
+        </div>
+
+        <!-- Metric Cards Grid -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-label">Prediction</div>
+            <div class="metric-value" id="metricPrediction">—</div>
+            <div class="metric-sub" id="metricVerdict">Legitimate communication</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Spam Probability</div>
+            <div class="metric-value" id="metricProbability">—%</div>
+            <div class="progress-bar-container">
+              <div class="progress-bar-fill" id="probabilityFill" style="width: 0%;"></div>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Confidence</div>
+            <div class="metric-value" id="metricConfidence">—%</div>
+            <div class="progress-bar-container">
+              <div class="progress-bar-fill progress-confidence" id="confidenceFill" style="width: 0%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Analyzed Message Preview -->
+        <div class="analyzed-preview">
+          <div class="preview-label">Analyzed Message:</div>
+          <blockquote class="preview-text" id="previewText"></blockquote>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>OST Mini Project • <strong>Smart Spam Classification System</strong></p>
+      <p class="footer-meta">Trained on 5,572 SMS messages • Scikit-Learn Logistic Regression &amp; TF-IDF</p>
+    </footer>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
