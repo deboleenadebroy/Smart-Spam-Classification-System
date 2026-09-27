@@ -1,5 +1,5 @@
 """
-Unit tests for the Flask application backend.
+Unit tests for the Flask application backend and frontend routes.
 """
 
 import unittest
@@ -16,12 +16,22 @@ class TestFlaskBackend(unittest.TestCase):
         self.client = app.test_client()
 
     def test_get_root(self):
-        """Verify GET / returns 200 and healthy status."""
+        """Verify GET / returns 200 and healthy status for API clients."""
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
         data = response.get_json()
         self.assertIn("status", data)
         self.assertEqual(data["status"], "healthy")
+
+    def test_get_root_html(self):
+        """Verify GET / returns 200 and HTML page when browser requests text/html."""
+        response = self.client.get("/", headers={"Accept": "text/html,application/xhtml+xml"})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("text/html", response.content_type)
+        html = response.get_data(as_text=True)
+        self.assertIn("Smart Spam Classifier", html)
+        self.assertIn("messageInput", html)
+        self.assertIn("analyzeBtn", html)
 
     def test_valid_prediction_ham(self):
         """Verify valid ham message returns 200 and correct fields."""
@@ -48,6 +58,32 @@ class TestFlaskBackend(unittest.TestCase):
         self.assertTrue(data.get("success"))
         self.assertEqual(data.get("prediction"), "spam")
         self.assertGreater(data["spam_probability"], 0.5)
+
+    def test_phishing_prediction(self):
+        """Verify phishing-style bank alert message is predicted as spam with hybrid signals."""
+        response = self.client.post("/predict", json={
+            "message": "URGENT! Your bank account has been flagged. Verify now at http://secure-update.com"
+        })
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertTrue(data.get("success"))
+        self.assertEqual(data.get("prediction"), "spam")
+        self.assertGreaterEqual(data["spam_probability"], 0.30)
+        self.assertIn("risk_signals", data)
+        self.assertIn("url_detected", data["risk_signals"])
+        self.assertIn("reason", data)
+
+    def test_legitimate_url_prediction(self):
+        """Verify message with benign URL is predicted as ham."""
+        response = self.client.post("/predict", json={
+            "message": "Please review the documentation at https://example.com/docs"
+        })
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertTrue(data.get("success"))
+        self.assertEqual(data.get("prediction"), "ham")
+        self.assertIn("url_detected", data.get("risk_signals", []))
+
 
     def test_empty_input(self):
         """Verify empty input returns 400 with an error message."""
